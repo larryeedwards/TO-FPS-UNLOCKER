@@ -1,1 +1,1 @@
-A cross-platform patcher for modifying dtMinWait in Tornado Outbreak’s executable, enabling you to target or unlock the FPS in-game.
+A cross-platform framerate patcher for Tornado Outbreak. It allows you to target the game to a designated framerate or optionally, run at an unlocked framerate all together. Requires either a decrypted .xex file via xextool, a decrypted .elf file, or a main.dol file.
