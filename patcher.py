@@ -57,13 +57,14 @@ def patch_file(path, fps):
     data[offset:offset+4] = float_bytes
 
     base, ext = os.path.splitext(path)
-    tag = "uncap" if fps <= 0 else f"{fps}fps"
+    tag = "uncap" if fps <= 0 else f"{int(fps)}fps"
     out_path = f"{base}_{tag}{ext}"
 
     with open(out_path, "wb") as f:
         f.write(data)
 
     return out_path, game_type, dt
+
 
 # ---------------- GUI ----------------
 
@@ -98,7 +99,8 @@ def browse():
 
 tk.Button(frame_file, text="Browse", command=browse).pack(side=tk.LEFT, padx=4)
 
-# FPS selector
+
+# FPS selector + custom input
 frame_fps = tk.Frame(root)
 frame_fps.pack(pady=15)
 
@@ -112,26 +114,50 @@ fps_menu = tk.OptionMenu(
 )
 fps_menu.pack(side=tk.LEFT)
 
+# Custom FPS input
+tk.Label(frame_fps, text="  or custom: ").pack(side=tk.LEFT)
+custom_fps_var = tk.StringVar()
+custom_fps_entry = tk.Entry(frame_fps, width=6, textvariable=custom_fps_var)
+custom_fps_entry.pack(side=tk.LEFT)
+
+
 # dtMinWait preview
 dt_label_var = tk.StringVar(value="dtMinWait = ? s")
 dt_label = tk.Label(root, textvariable=dt_label_var)
 dt_label.pack()
 
 def update_dt_preview(*args):
+    custom = custom_fps_var.get().strip()
+
+    # Custom field takes priority
+    if custom:
+        try:
+            fps = float(custom)
+            dt = fps_to_dtmin(fps)
+            dt_label_var.set(f"dtMinWait = {dt:.6f} seconds")
+            return
+        except ValueError:
+            dt_label_var.set("dtMinWait = ? s")
+            return
+
+    # Otherwise use preset dropdown
     v = fps_var.get().strip()
     if v.lower() == "uncapped":
         dt = 0.0
     else:
         try:
             fps = float(v)
+            dt = fps_to_dtmin(fps)
         except ValueError:
             dt_label_var.set("dtMinWait = ? s")
             return
-        dt = fps_to_dtmin(fps)
+
     dt_label_var.set(f"dtMinWait = {dt:.6f} seconds")
 
 fps_var.trace_add("write", update_dt_preview)
+custom_fps_var.trace_add("write", update_dt_preview)
 update_dt_preview()
+
 
 def apply():
     path = path_var.get().strip()
@@ -139,15 +165,24 @@ def apply():
         messagebox.showerror("Error", "Choose a .xex / .dol / .elf first.")
         return
 
-    v = fps_var.get().strip()
-    if v.lower() == "uncapped":
-        fps = -1
-    else:
+    # Custom FPS takes priority
+    v_custom = custom_fps_var.get().strip()
+    if v_custom:
         try:
-            fps = int(v)
+            fps = float(v_custom)
         except ValueError:
-            messagebox.showerror("Error", "Invalid FPS value.")
+            messagebox.showerror("Error", "Custom FPS value is invalid.")
             return
+    else:
+        v = fps_var.get().strip()
+        if v.lower() == "uncapped":
+            fps = -1
+        else:
+            try:
+                fps = float(v)
+            except ValueError:
+                messagebox.showerror("Error", "Invalid FPS value.")
+                return
 
     try:
         out_path, game_type, dt = patch_file(path, fps)
@@ -155,7 +190,7 @@ def apply():
         messagebox.showerror("Error", str(e))
         return
 
-    fps_text = "Uncapped" if fps <= 0 else f"{fps} FPS"
+    fps_text = "Uncapped" if fps <= 0 else f"{int(fps)} FPS"
     messagebox.showinfo(
         "Patched",
         f"Detected: {game_type.upper()}\n"
