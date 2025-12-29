@@ -34,5 +34,5 @@ A cross-platform framerate patcher for Tornado Outbreak. It allows you to target
 | ------------ | ------------- | --------------------------------- |
 | **30**       | ✔️            | Default framerate                 |
 | **60**       | ✔️            | Maintains steady 60 FPS           |
-| **120**      | ✔️            | Occasional dips to **88–120 FPS** |
-| **Uncapped** | ✔️            | Drops to ~101 FPS in heavy scenes |
+| **120**      | ✔️            | Occasional dips to **88–120 FPS**. Requires ``framerate_limit`` to be set to 120 and ``vsync`` to be set to false in the Xenia Canary config file  |
+| **Uncapped** | ✔️            | Drops to ~101 FPS in heavy scenes. Requires ``framerate_limit`` to be set to 0 and ``vsync`` to be set to false in the Xenia Canary config file |
