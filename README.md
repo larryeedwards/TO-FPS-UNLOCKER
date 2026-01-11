@@ -36,3 +36,13 @@ A cross-platform framerate patcher for Tornado Outbreak. It allows you to target
 | **60**       | ✔️            | Maintains steady 60 FPS           |
 | **120**      | ✔️            | Occasional dips to **88–120 FPS**. Requires ``framerate_limit`` to be set to 120 and ``vsync`` to be set to false in the Xenia Canary config file  |
 | **Uncapped** | ✔️            | Drops to ~101 FPS in heavy scenes. Requires ``framerate_limit`` to be set to 0 and ``vsync`` to be set to false in the Xenia Canary config file |
+
+# FAQ
+### What's the difference between using Xenia's time scaler compared to using the framerate patcher?
+Xenia's time scaler, set to 128-256% "unlocks" Tornado Outbreak's framerate by overclocking the game, thus forcing 60 FPS. However, this approach introduces many issues that aren't present with the framerate patcher. This includes but not limited to:
+- Audio speed up if the apu isn't set to sdl
+- Game running in slow-motion when the framerate reaches below 60
+- Game running too quickly when the framerate exceeds 60
+- Cutscene subtitles moving too quickly
+### Do I have to worry about the framerate unlocker overwriting my executable?
+No. Your original executable is left untouched. When you select patch file, a separate executable is created, followed by an underscore and the set framerate. For example, patching the Xbox 360's executable, `default.xex`, will result in a file named `default_60fps.xex`.
