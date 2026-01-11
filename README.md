@@ -45,4 +45,4 @@ Xenia's time scaler, set to 128-256% "unlocks" Tornado Outbreak's framerate by o
 - Game running too quickly when the framerate exceeds 60
 - Cutscene subtitles moving too quickly
 ### Do I have to worry about the framerate unlocker overwriting my executable?
-No. Your original executable is left untouched. When you select patch file, a separate executable is created, followed by an underscore and the set framerate. For example, patching the Xbox 360's executable, `default.xex`, will result in a file named `default_60fps.xex`.
+No. Your original executable is left untouched. When you select patch file, a separate executable is created, followed by an underscore and the set framerate. For example, patching the Xbox 360's executable, `default.xex`, to set the framerate to 60 FPS will result in a file named `default_60fps.xex`. If the framerate is set to uncapped, the outputted executable will be `default_uncap.xex`
