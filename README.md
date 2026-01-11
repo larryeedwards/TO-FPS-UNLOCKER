@@ -7,7 +7,7 @@ A cross-platform framerate patcher for Tornado Outbreak. It allows you to target
 4. Choose a target framerate from the dropdown.
 5. Select patch file
 6. Launch your newly patched executable in-game for results
-# Framerate evaulation
+# Framerate evaluation
 **Note: Performance may vary on specs. On console, 60 is the max limit.**
 ### Performance Key
 | Icon | Meaning                      |
