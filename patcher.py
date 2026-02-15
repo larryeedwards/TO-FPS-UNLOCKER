@@ -122,7 +122,7 @@ def browse():
 
 tk.Button(frame_file, text="Browse", command=browse).pack(side=tk.LEFT, padx=4)
 
-# # FPS selector + custom input
+# FPS selector + custom input
 frame_fps = tk.Frame(root)
 frame_fps.pack(pady=15)
 
