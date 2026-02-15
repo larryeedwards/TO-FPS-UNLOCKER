@@ -4,15 +4,38 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 
 # Offsets for dtMinWait in each build (big-endian floats)
-XEX_DT_MIN_WAIT_OFFSET  = 0x35868   # Xbox 360 default.xex
-DOL_DT_MIN_WAIT_OFFSET  = 0x3DE120  # Wii main.dol
-ELF_DT_MIN_WAIT_OFFSET  = 0x57CE58  # PS3 EBOOT.elf
+XEX_DT_MIN_WAIT_OFFSET     = 0x35868    # Xbox 360 default.xex
+DOL_DT_MIN_WAIT_OFFSET_NTSC = 0x3DE120  # Wii main.dol (NTSC)
+DOL_DT_MIN_WAIT_OFFSET_PAL  = 0x3DE320  # Wii main.dol (PAL)
+ELF_DT_MIN_WAIT_OFFSET      = 0x57CE58  # PS3 EBOOT.elf
 
 def fps_to_dtmin(fps):
     """Convert FPS target to dtMinWait value."""
     if fps <= 0:
         return 0.0
     return (1.0 / float(fps)) - 0.001
+
+
+def get_wii_dt_offset(data):
+    """Detect NTSC or PAL Wii main.dol by checking which offset holds a dtMinWait float."""
+    candidates = [
+        (DOL_DT_MIN_WAIT_OFFSET_NTSC, "NTSC"),
+        (DOL_DT_MIN_WAIT_OFFSET_PAL,  "PAL")
+    ]
+
+    for offset, region in candidates:
+        if offset + 4 > len(data):
+            continue
+        try:
+            val = struct.unpack_from(">f", data, offset)[0]
+            if 0.005 < val < 0.1:          # safe range for any reasonable frame delta
+                return offset, region
+        except:
+            pass
+
+    raise RuntimeError("Unable to detect Wii NTSC/PAL version. "
+                       "Are you using the correct .dol?")
+
 
 def detect_format(path):
     ext = os.path.splitext(path)[1].lower()
@@ -33,26 +56,29 @@ def detect_format(path):
     # Default to DOL if unknown but user selected a game file
     return "dol"
 
+
 def patch_file(path, fps):
     game_type = detect_format(path)
-
-    if game_type == "xex":
-        offset = XEX_DT_MIN_WAIT_OFFSET
-    elif game_type == "dol":
-        offset = DOL_DT_MIN_WAIT_OFFSET
-    elif game_type == "elf":
-        offset = ELF_DT_MIN_WAIT_OFFSET
-    else:
-        raise RuntimeError("Unknown game format.")
-
-    dt = fps_to_dtmin(fps)
-    float_bytes = struct.pack(">f", dt)  # PPC/Cell/Wii/360 all big-endian
 
     with open(path, "rb") as f:
         data = bytearray(f.read())
 
+    if game_type == "xex":
+        offset = XEX_DT_MIN_WAIT_OFFSET
+        region = "Xbox 360"
+    elif game_type == "dol":
+        offset, region = get_wii_dt_offset(data)
+    elif game_type == "elf":
+        offset = ELF_DT_MIN_WAIT_OFFSET
+        region = "PS3"
+    else:
+        raise RuntimeError("Unknown game format.")
+
     if offset + 4 > len(data):
         raise RuntimeError("File too small for expected offset.")
+
+    dt = fps_to_dtmin(fps)
+    float_bytes = struct.pack(">f", dt)          # PPC/Cell/Wii/360 all big-endian
 
     data[offset:offset+4] = float_bytes
 
@@ -63,7 +89,7 @@ def patch_file(path, fps):
     with open(out_path, "wb") as f:
         f.write(data)
 
-    return out_path, game_type, dt
+    return out_path, game_type, region, dt
 
 
 # ---------------- GUI ----------------
@@ -84,23 +110,19 @@ frame_file.pack(pady=3)
 
 tk.Label(frame_file, text="Game file (.xex / .dol / .elf): ").pack(side=tk.LEFT)
 path_var = tk.StringVar()
-tk.Entry(frame_file, textvariable=path_var, width=35).pack(side=tk.LEFT)
+tk.Entry(frame_file, textvariable=path_var, width=40).pack(side=tk.LEFT)
 
 def browse():
     p = filedialog.askopenfilename(
         title="Select default.xex / main.dol / EBOOT.elf",
-        filetypes=[
-            ("Game binaries", "*.xex *.dol *.elf"),
-            ("All files", "*.*")
-        ],
+        filetypes=[("Game binaries", "*.xex *.dol *.elf"), ("All files", "*.*")]
     )
     if p:
         path_var.set(p)
 
 tk.Button(frame_file, text="Browse", command=browse).pack(side=tk.LEFT, padx=4)
 
-
-# FPS selector + custom input
+# # FPS selector + custom input
 frame_fps = tk.Frame(root)
 frame_fps.pack(pady=15)
 
@@ -108,18 +130,14 @@ tk.Label(frame_fps, text="Framerate target: ").pack(side=tk.LEFT)
 
 fps_var = tk.StringVar(value="60")
 fps_menu = tk.OptionMenu(
-    frame_fps,
-    fps_var,
-    "30", "45", "60", "90", "120", "144", "240", "Uncapped"
+    frame_fps, fps_var, "30", "45", "60", "90", "120", "144", "240", "Uncapped"
 )
 fps_menu.pack(side=tk.LEFT)
 
-# Custom FPS input
 tk.Label(frame_fps, text="  or custom: ").pack(side=tk.LEFT)
 custom_fps_var = tk.StringVar()
 custom_fps_entry = tk.Entry(frame_fps, width=6, textvariable=custom_fps_var)
 custom_fps_entry.pack(side=tk.LEFT)
-
 
 # dtMinWait preview
 dt_label_var = tk.StringVar(value="dtMinWait = ? s")
@@ -128,8 +146,6 @@ dt_label.pack()
 
 def update_dt_preview(*args):
     custom = custom_fps_var.get().strip()
-
-    # Custom field takes priority
     if custom:
         try:
             fps = float(custom)
@@ -137,10 +153,8 @@ def update_dt_preview(*args):
             dt_label_var.set(f"dtMinWait = {dt:.6f} seconds")
             return
         except ValueError:
-            dt_label_var.set("dtMinWait = ? s")
-            return
+            pass
 
-    # Otherwise use preset dropdown
     v = fps_var.get().strip()
     if v.lower() == "uncapped":
         dt = 0.0
@@ -185,7 +199,7 @@ def apply():
                 return
 
     try:
-        out_path, game_type, dt = patch_file(path, fps)
+        out_path, game_type, region, dt = patch_file(path, fps)
     except Exception as e:
         messagebox.showerror("Error", str(e))
         return
@@ -193,11 +207,12 @@ def apply():
     fps_text = "Uncapped" if fps <= 0 else f"{int(fps)} FPS"
     messagebox.showinfo(
         "Patched",
-        f"Detected: {game_type.upper()}\n"
+        f"Detected: {game_type.upper()} ({region})\n"
         f"Target: {fps_text}\n"
         f"dtMinWait set to {dt:.6f} s\n\n"
         f"Saved as:\n{out_path}"
     )
+
 
 btn = tk.Button(root, text="Patch File",
                 font=("Segoe UI", 11, "bold"),
