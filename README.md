@@ -48,3 +48,5 @@ Xenia's time scaler, set to 128-256% "unlocks" Tornado Outbreak's framerate by o
 No. Your original executable is left untouched. When you select patch file, a separate executable is created, followed by an underscore and the set framerate. For example:
 - Patching `default.xex` to 60 FPS → `default_60fps.xex`
 - Patching `default.xex` to uncapped → `default_uncap.xex`
+### How does the patcher unlock the framerate?
+Tornado Outbreak internally stores a hidden float value named `dtMinWait` within the game's executable. Although the human-readable string label is omitted from the final release of the game, the corresponding float value itself remains intact. This patcher takes advantage of this by identifying the offset values on where each float value is located, then manipulating it to support higher framerates.
