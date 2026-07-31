@@ -11,9 +11,14 @@ ELF_DT_MIN_WAIT_OFFSET      = 0x57CE58  # PS3 EBOOT.elf
 
 def fps_to_dtmin(fps):
     """Convert FPS target to dtMinWait value."""
+    # base formula: dtMinWait = (1.0f / 30.0f) - 0.001f
     if fps <= 0:
         return 0.0
-    return (1.0 / float(fps)) - 0.001
+     """
+      The current formula makes the fps inaccurate because we're giving the player additional frames.
+      I.e 60 fps -> 0.015667 instead of 0.01667.
+     """
+    return (1.0 / float(fps)) # - 0.001 don't subtract like the base game.
 
 
 def get_wii_dt_offset(data):
